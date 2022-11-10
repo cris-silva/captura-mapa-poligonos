@@ -1,5 +1,3 @@
-library(shiny)
-
 shinyUI(fluidPage(
 
     titlePanel("Captura de polígonos"),

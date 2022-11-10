@@ -1,9 +1,3 @@
-library(shiny)
-library(tidyverse)
-library(leaflet)
-library(leaflet.extras)
-library(sf)
-
 # Función para extraer el WKT del polígono dibujado:
 
 convertir_wkt_poligono <- function(lista_geometria) {
