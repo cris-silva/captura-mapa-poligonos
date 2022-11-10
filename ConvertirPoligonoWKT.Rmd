@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+```
+
+## Construcción del polígono
+
+Cómo construir un polígono?
+
+```{r}
+coordenadas <- list(rbind(c(-98, 18), 
+                          c(-98.5, 18), 
+                          c(-98.5, 18.5), 
+                          c(-98, 18.5), 
+                          c(-98, 18)))
+
+poligono <- st_polygon(coordenadas)
+
+poligono %>% 
+  leaflet() %>% 
+  addPolygons() %>% 
+  addTiles()
+```
+
+Cómo convertir en WKT?
+
+```{r}
+poligono_wkt <-
+  poligono %>% 
+  st_as_text()
+
+poligono_wkt
+```
+
+Volver a cargar el polígono en Leaflet desde el WKT:
+
+```{r}
+tibble(wkt = poligono_wkt) %>% 
+  st_as_sf(wkt = "wkt",
+           crs = 4326) %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addPolygons()
+```
+
+
+## Extraer el polígono desde Shiny
+
+En el archivo `poligono.rds` hay un ejemplo de la extracción del polígono dibujado con la barra de dibujo de Leaflet. Es una lista que tiene las coordenadas que se obtiene desde la función `input$mapa_draw_new_feature$geometry$coordinates[[1]]`:
+
+```{r}
+poligono_dibujado <-
+  read_rds("poligono.rds") %>% 
+  glimpse()
+```
+
+Es necesario transformar las coordenadas de las listas al formato que necesita la función `st_polygon` para construir el polígono:
+
+```{r}
+p <- poligono_dibujado$geometry$coordinates[[1]] %>% as.matrix()
+p
+```
+
+```{r}
+for(i in 1:length(p)){
+  print(str_c(p[[i]][[1]],
+              ",",
+              p[[i]][[2]]))
+}
+```
+
+```{r}
+pc <- c(numeric(), numeric())
+
+for(i in 1:length(p)){
+  pc <- rbind(pc,
+              c(p[[i]][[1]], p[[i]][[2]]))
+}
+
+pc <- list(pc)
+
+pc
+```
+
+Intentar la construcción del polígono:
+
+```{r}
+poligono_extraido <- st_polygon(pc)
+
+poligono_extraido %>% leaflet() %>% addTiles() %>% addPolygons() 
+```
+
+
+## Función para la conversión
+
+Crear la función para convertir la lista de coordenadas a WKT
+
+```{r}
+convertir_wkt_poligono <- function(lista_geometria) {
+  
+  require(tidyverse)
+  require(sf)
+  
+  matriz_coordenadas <- as.matrix(lista_geometria)
+  lista_coordenadas <- c(numeric(), numeric())
+  
+  for(i in 1:length(matriz_coordenadas)){
+    lista_coordenadas <- rbind(lista_coordenadas,
+                               c(matriz_coordenadas[[i]][[1]], matriz_coordenadas[[i]][[2]]))
+  }
+  
+  wkt_poligono <- 
+    list(lista_coordenadas) %>% 
+    st_polygon() %>% 
+    st_as_text()
+  
+  return(wkt_poligono)
+  
+}
+```
+
+Prueba de la función:
+
+```{r}
+convertir_wkt_poligono(poligono_dibujado$geometry$coordinates[[1]])
+```
